@@ -9,98 +9,101 @@ while True:
         dias = int(input('Digite o número de dias: '))
         if dias < 1:
             raise ValueError
+        print(f'\nQuantidade de dias: {dias}')
+        decisao = int(input('Deseja confirmar? [1] Sim  [2] Não -> '))
+        if decisao != 1: raise ValueError
         break
     except ValueError:
-        print('Digite no mínimo 1 número inteiro')
+        print('\nDigite no mínimo 1 número inteiro')
 
 # Recebendo as categorias de despesas
 while True:
     try:
-        categorias = list(map(str, input('Digite as despesas separadas por espaço (Ex: alimentação transporte): ').split()))
-        print(categorias)
+        categorias = list(map(str, input('\nDigite as categorias de despesas separadas por espaço (Ex: Alimentação Transporte): ').split()))
+        print('\nCategorias de despesa: ', ', '.join(categorias))
+        decisao = int(input('Deseja confirmar? [1] Sim  [2] Não -> '))
+        if decisao != 1: raise ValueError
         break
     except ValueError:
-        print('valor errado')
+        print('\nDigite novamente...')
 
 # Recebendo os valores das despesas por dia
 despesasPorDia = {}
 while True:
     try:
         for dia in range(1, dias+1):
-            despesasPorDia[dia] = {item:(float(input(f'Digite o valor para o {dia}ª dia da categoria {item}: '))) for item in categorias}
+            despesasPorDia[dia] = {}
+            print(f'\nDia {dia}')
+            for y in categorias:
+                valor = float(input(f'Digite o valor para a categoria {y}: '))
+                if valor < 0:
+                    raise ValueError
+                despesasPorDia[dia][y] = valor
+            decisao = int(input('\nDeseja confirmar e avançar para o próximo dia? [1] Sim  [2] Não -> '))
+            if decisao != 1: 
+                raise ValueError
         break
     except ValueError:
-        print('Digite apenas números positivos')
+        print('\nDigite apenas números positivos')
 
-print(despesasPorDia)
+for day in range(1, dias+1):
+    print(f'\nDia {day}')
+    for m in categorias:
+        print(f'{m}: R$ {despesasPorDia[day][m]}')
 
 
+# Transformação dos dados para montar os gráficos
 class Dados:
-    def __init__(self):
-        self.categoria = {}
-
     def transformarDados(self):
+        self.categoria = {}
         for a in categorias:
-            for i in despesasPorDia:
-                b = {dia:despesasPorDia[dia][a] for dia in despesasPorDia}
-            self.categoria[a] = b
-            return self.categoria[a]
+            self.categoria[a] = {}
+            for dia in despesasPorDia:
+                self.categoria[a][dia] = despesasPorDia[dia][a]
+        return self.categoria
     
-    def transformarDadosEixoX(self):
-        xdias = np.array(list(self.transformarDados()[item])).reshape((-1,1))
+    def transformarDadosEixoX(self, categoria):
+        return np.array(list(categoria)).reshape((-1,1))
 
-
-categoria = {}
-for a in categorias:
-    for i in despesasPorDia:
-        b = {dia:despesasPorDia[dia][a] for dia in despesasPorDia}
-    categoria[a] = b
+    def transformarDadosEixoY(self, categoria):
+        return np.array(list(categoria[a] for a in categoria))
 
 
 class Graficos(Dados):
     def __init__(self):
-        pass
+        self.categoria = super().transformarDados()
 
-    def imprimirGrafico(self, categoriaDada):
-        for item in categoria:
-            xdias = np.array(list(categoriaDada[item])).reshape((-1,1))
-            ydespesa = np.array(list(categoriaDada[item][a] for a in categoriaDada[item]))
-            print(xdias)
-            print(ydespesa)
-            plt.plot(xdias, ydespesa, marker='.', markersize=17)
-        
+    def imprimirGraficoTotal(self):
+        legenda = []
+        for item in self.categoria:
+            xdias = super().transformarDadosEixoX(self.categoria[item])
+            ydespesa = super().transformarDadosEixoY(self.categoria[item])
+            plt.plot(xdias, ydespesa, marker='.', linewidth=3.5, markersize=17)
+            legenda.append(item)
+        self.mostrarGrafico('Despesas', legenda)
+    
+    def mostrarGrafico(self, titulo, legenda):
+        plt.title(titulo)
+        plt.xlabel('Dia')
+        plt.ylabel('Despesas em R$')
+        plt.legend(legenda)
+        print(f'\nGrafico {titulo} Gerado com sucesso!')
+        plt.show()
 
-# despesa = {1:100, 2:0, 3:0, 4:150, 5:0}
-# xdias = np.array(list(alimentacao)).reshape((-1,1))
-# ydespesa = np.array([alimentacao[item] for item in alimentacao])
-# print(xdias)
-# print(ydespesa)
+    def imprimirGraficoRegressao(self):
+        for item in self.categoria:
+            xdias = super().transformarDadosEixoX(self.categoria[item])
+            ydespesa = super().transformarDadosEixoY(self.categoria[item])
+            regr = LinearRegression().fit(X=xdias, y=ydespesa)
+            previsao = regr.predict(xdias)
+            plt.plot(xdias, ydespesa, marker='.', linewidth=3.5, markersize=17)
+            plt.plot(xdias, previsao, linewidth=2.0)
+            titulo = 'Regressão - ' + item
+            titulo_legenda = item + ' - Original'
+            legenda = [titulo_legenda, 'Regressão Linear']
+            self.mostrarGrafico(titulo, legenda)
 
-# regr = LinearRegression().fit(X=xdias, y=ydespesa)
-
-# previsao = regr.predict(xdias)
-# print(previsao)
-
-filled_marker_style = dict(marker='.', linestyle='-', linewidth=3.5, markersize=17,
-                           color='#8ECEE7',
-                           markerfacecolor='y',
-                           markeredgecolor='#8ECEE7')
 
 despesass = Graficos()
-despesass.imprimirGrafico(categoria)
-plt.title('Despesas')
-plt.xlabel('Dia')
-plt.ylabel('Despesas')
-legendas = []
-for item in categorias:
-    legendas.append(f'{item}')
-plt.legend(legendas)
-plt.show()
-
-# plt.plot(xdias, ydespesa, **filled_marker_style)
-# plt.plot(xdias, previsao, linewidth=2, c='b')
-# plt.title('Despesas')
-# plt.xlabel('Dia')
-# plt.ylabel('Despesas')
-# plt.legend(['Dados', 'Previsão'])
-# plt.show()
+despesass.imprimirGraficoTotal()
+despesass.imprimirGraficoRegressao()
