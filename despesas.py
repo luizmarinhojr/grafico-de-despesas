@@ -20,7 +20,7 @@ while True:
 while True:
     try:
         categorias = list(map(str, input('\nDigite as categorias de despesas separadas por espaço (Ex: Alimentação Transporte): ').split()))
-        print('\nCategorias de despesa: ', ', '.join(categorias))
+        print('\nCategorias de despesa:', ', '.join(categorias))
         decisao = int(input('Deseja confirmar? [1] Sim  [2] Não -> '))
         if decisao != 1: raise ValueError
         break
@@ -46,11 +46,6 @@ while True:
     except ValueError:
         print('\nDigite apenas números positivos')
 
-for day in range(1, dias+1):
-    print(f'\nDia {day}')
-    for m in categorias:
-        print(f'{m}: R$ {despesasPorDia[day][m]}')
-
 
 # Transformação dos dados para montar os gráficos
 class Dados:
@@ -72,23 +67,19 @@ class Dados:
 class Graficos(Dados):
     def __init__(self):
         self.categoria = super().transformarDados()
+        for day in range(1, dias+1):
+            print(f'\nDia {day}')
+            for m in categorias:
+                print(f'{m}: R$ {despesasPorDia[day][m]:.2f}')
 
-    def imprimirGraficoTotal(self):
+    def imprimirGraficoDespesas(self):
         legenda = []
         for item in self.categoria:
             xdias = super().transformarDadosEixoX(self.categoria[item])
             ydespesa = super().transformarDadosEixoY(self.categoria[item])
-            plt.plot(xdias, ydespesa, marker='.', linewidth=3.5, markersize=17)
+            plt.plot(xdias, ydespesa, marker='.', linewidth=3.5, markersize=19, markerfacecolor='b')
             legenda.append(item)
         self.mostrarGrafico('Despesas', legenda)
-    
-    def mostrarGrafico(self, titulo, legenda):
-        plt.title(titulo)
-        plt.xlabel('Dia')
-        plt.ylabel('Despesas em R$')
-        plt.legend(legenda)
-        print(f'\nGrafico {titulo} Gerado com sucesso!')
-        plt.show()
 
     def imprimirGraficoRegressao(self):
         for item in self.categoria:
@@ -96,14 +87,26 @@ class Graficos(Dados):
             ydespesa = super().transformarDadosEixoY(self.categoria[item])
             regr = LinearRegression().fit(X=xdias, y=ydespesa)
             previsao = regr.predict(xdias)
-            plt.plot(xdias, ydespesa, marker='.', linewidth=3.5, markersize=17)
+            plt.plot(xdias, ydespesa, marker='.', linewidth=3.5, markersize=19, markerfacecolor='y')
             plt.plot(xdias, previsao, linewidth=2.0)
-            titulo = 'Regressão - ' + item
+            titulo = 'Regressão-' + item
             titulo_legenda = item + ' - Original'
             legenda = [titulo_legenda, 'Regressão Linear']
             self.mostrarGrafico(titulo, legenda)
 
+    def mostrarGrafico(self, titulo, legenda):
+        try:
+            plt.title(titulo)
+            plt.xlabel('Dia')
+            plt.ylabel('Despesas em R$')
+            plt.legend(legenda)
+        except:
+            print('Houve um erro na geração dos gráficos')
+        finally:
+            print(f'\nGrafico {titulo} Gerado com sucesso!')
+            plt.show()
+
 
 despesass = Graficos()
-despesass.imprimirGraficoTotal()
+despesass.imprimirGraficoDespesas()
 despesass.imprimirGraficoRegressao()
